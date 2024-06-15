@@ -6,9 +6,8 @@ const UserSchema = new Schema({
   username: { type: String, required: true, unique: true },
   email: { type: String, required: true, unique: true },
   password: { type: String, required: true },
-  expenses: [{ type: Schema.Types.ObjectId, ref: "Expense" }],
+  expenses: [{ type: Schema.Types.ObjectId, ref: "expense" }],
 });
 
-const User = mongoose.model("User", UserSchema);
-
-module.exports = User;
+const UserModel = mongoose.models?.user || mongoose.model("user", UserSchema);
+module.exports = UserModel;

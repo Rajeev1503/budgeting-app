@@ -22,7 +22,7 @@ export default function RootLayout({ children }) {
       <html lang="en">
         <body>
           <main className="min-h-screen w-screen">
-            <NavBar />
+            {/* <NavBar /> */}
             {children}
           </main>
         </body>

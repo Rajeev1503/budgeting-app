@@ -5,8 +5,9 @@ import ErrorResponse from '@/utils/customResponses/errorResponse';
 import User from '@/model/user'
 import Expense from '@/model/expense'
 
-export async function POST() {
-
+export async function POST(req) {
+  const body = await req.body;
+  console.log(body);
   // Get the userId from auth() -- if null, the user is not signed in
   const { userId } = auth();
 
