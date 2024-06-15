@@ -2,10 +2,10 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@clerk/nextjs';
 import axios from 'axios';
-import PieChartComponent from '../components/PieChartComponent';
-import BarChartComponent from '../components/BarChartComponent';
-import TransactionsList from '../components/TransactionsList';
-import FilterPanel from '../components/FilterPanel';
+import PieChartComponent from '@/components/pieChartComponent';
+import BarChartComponent from '@/components/barChartComponent';
+import TransactionsList from '@/components/transactionsList';
+import FilterPanel from '@/components/filterPanel';
 
 const Home = () => {
   const { isLoaded, userId, sessionId, getToken } = useAuth();
