@@ -5,7 +5,6 @@ ChartJS.register(ArcElement, Tooltip, Legend);
 
 const PieChartComponent = ({ data }) => {
   const chartData = {
-    labels: ['Essentials', 'Non-Essentials', 'Miscellaneous'],
     datasets: [
       {
         data: data,
@@ -15,7 +14,12 @@ const PieChartComponent = ({ data }) => {
     ],
   };
 
-  return <Doughnut data={chartData} />;
+  return (
+  <div className='flex flex-row gap-4'>
+    <div className='w-[300px]'><Doughnut data={chartData} /></div>
+    <div>ghfdkjghk</div>
+    </div>
+  )
 };
 
 export default PieChartComponent;

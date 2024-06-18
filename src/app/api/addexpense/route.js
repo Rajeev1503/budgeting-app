@@ -1,45 +1,43 @@
-import { NextResponse } from 'next/server';
+import { NextResponse } from "next/server";
 import { currentUser, auth } from "@clerk/nextjs/server";
-import SuccessResponse from '@/utils/customResponses/successResponse';
-import ErrorResponse from '@/utils/customResponses/errorResponse';
-import User from '@/model/user'
-import Expense from '@/model/expense'
+import UserModel from "@/model/user";
+import Expense from "@/model/expense";
 
 export async function POST(req) {
-  const body = await req.body;
-  console.log(body);
-  // Get the userId from auth() -- if null, the user is not signed in
-  const { userId } = auth();
-
-  if (!userId) {
-      return ErrorResponse(NextResponse, 401, "Unauthorized")
-  }
-
-  // Get the Backend API User object when you need access to the user's information
-  const user = await currentUser();
-
   try {
-    const { user:userReq, category, subcategory, amount, description } = req.body;
+    const { userId } = auth();
+    if (!userId) {
+      return NextResponse.json({ error: "Not authorized" }, { status: 400 });
+    }
+    const user = await currentUser();
 
+    const { category, subcategory, amount, whatDidYouSpendOn } =
+      await req.json();
+
+    console.log(category, subcategory, amount, whatDidYouSpendOn);
+
+    const userInDb = await UserModel.findOne({ clerkId: user.id.toString() });
+const date = new Date()
     const newExpense = new Expense({
-      user,
+      user: userInDb._id,
+      whatDidYouSpendOn,
+      amount: amount.split("₹")[1],
       category,
       subcategory,
-      amount,
-      description,
+      date: date.toISOString()
     });
 
-    await Expense.save();
+    if (!newExpense) {
+      throw new Error("Failed to save new expense");
+    }
 
-    // Add the expense to the user's expense array
-    await User.findByIdAndUpdate(user, { $push: { expenses: Expense._id } });
+    await newExpense.save();
+    userInDb.expenses.push(newExpense);
+    await userInDb.save();
 
-    SuccessResponse(NextResponse,200, newExpense);
-    
+    return NextResponse.json({ data: newExpense }, { status: 200 });
   } catch (error) {
-    ErrorResponse(NextResponse, 500, error.message)
+    console.log(error.message);
+    return NextResponse.json({ error: error.message }, { status: 400 });
   }
-
-  // Perform your Route Handler's logic with the returned user object
-return SuccessResponse(NextResponse, 200, user)
 }

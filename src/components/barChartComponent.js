@@ -1,31 +1,53 @@
-import { Bar } from 'react-chartjs-2';
-import { Chart as ChartJS, BarElement, CategoryScale, LinearScale, Tooltip, Legend } from 'chart.js';
+import { Bar } from "react-chartjs-2";
+import {
+  Chart as ChartJS,
+  BarElement,
+  CategoryScale,
+  LinearScale,
+  Tooltip,
+  Legend,
+} from "chart.js";
+import formatDate from "@/utils/dateFormater";
 
 ChartJS.register(BarElement, CategoryScale, LinearScale, Tooltip, Legend);
+export const options = {
+  plugins: {
+    title: {
+      display: true,
+      text: 'Chart.js Bar Chart - Stacked',
+    },
+  },
+  responsive: true,
+  scales: {
+    x: {
+      stacked: true,
+    },
+    y: {
+      stacked: true,
+    },
+  },
+};
+const BarChartComponent = ({ dataGenerator }) => {
 
-const BarChartComponent = ({ data }) => {
+  function generateOneWeek() {
+    const today = new Date();
+    const week = [];
+    for (let i = 0; i < 7; i++) {
+      const date = new Date(today);
+      date.setDate(today.getDate() - i);
+      week.push(formatDate(date.toISOString()));
+    }
+    return week.reverse();
+  }
+
   const chartData = {
-    labels: ['5th Mar', '6th Mar', '7th Mar', '8th Mar', '9th Mar', 'Yesterday', 'Today'],
-    datasets: [
-      {
-        label: 'Essentials',
-        data: data.essentials,
-        backgroundColor: '#4caf50',
-      },
-      {
-        label: 'Non-Essentials',
-        data: data.nonEssentials,
-        backgroundColor: '#ffeb3b',
-      },
-      {
-        label: 'Miscellaneous',
-        data: data.miscellaneous,
-        backgroundColor: '#9e9e9e',
-      },
-    ],
+    labels: generateOneWeek(),
+    datasets: dataGenerator
   };
 
-  return <Bar data={chartData} />;
+  console.log((chartData));
+
+  return <Bar options={options} data={chartData} />;
 };
 
 export default BarChartComponent;

@@ -1,78 +1,143 @@
-'use client'
-import { useState, useEffect } from 'react';
-import { useAuth } from '@clerk/nextjs';
-import axios from 'axios';
-import PieChartComponent from '@/components/pieChartComponent';
-import BarChartComponent from '@/components/barChartComponent';
-import TransactionsList from '@/components/transactionsList';
-import FilterPanel from '@/components/filterPanel';
+"use client";
+import { useState, useEffect, useMemo } from "react";
+import {
+  SignInButton,
+  SignedIn,
+  SignedOut,
+  UserButton,
+  useAuth,
+} from "@clerk/nextjs";
+import axios from "axios";
+import PieChartComponent from "@/components/pieChartComponent";
+import BarChartComponent from "@/components/barChartComponent";
+import TransactionsList from "@/components/transactionsList";
+import FilterPanel from "@/components/filterPanel";
+import ExpenseModal from "@/components/expenseModal";
+import Spinner from "@/components/ui/spinner";
+import formatDate from "@/utils/dateFormater";
+import generatePastelColor from "@/utils/pastelColorGenerator";
+import generatePunchyColorHex from "@/utils/pastelColorGenerator";
 
 const Home = () => {
   const { isLoaded, userId, sessionId, getToken } = useAuth();
-  const [expenses, setExpenses] = useState([]);
-  const [filters, setFilters] = useState({
-    Food: true,
-    Housing: true,
-    Utilities: true,
-    Healthcare: true,
-  });
+  const [userData, SetUserData] = useState(null);
+  const [userExpenses, setUserExpenses] = useState(null);
+  const [showAddExpenseModal, setShowAddExpenseModal] = useState(false);
 
   useEffect(() => {
     const fetchExpenses = async () => {
-      // const token = await getToken({ template: 'default' });
-      const response = await axios.get('/api/getexpenses'
-        // headers: {
-        //   Authorization: `Bearer ${token}`,
-        // },
-      // }
-    );
-      setExpenses(response.data.data);
+      const response = await axios.get("/api/getexpenses");
+      SetUserData(response.data.userData);
+      setUserExpenses(response.data.userExpenses);
     };
+    fetchExpenses();
+  }, []);
 
-    if (isLoaded && userId) {
-      fetchExpenses();
-    }
-  }, [isLoaded, userId, getToken]);
-
-  const filteredExpenses = expenses.filter((expense) => {
-    if (filters[expense.category]) return true;
-    return false;
-  });
+  const filteredExpenses = [];
 
   const pieChartData = [34980, 34980, 34980]; // Replace with real data
-  const barChartData = {
-    essentials: [900, 600, 800, 900, 900, 0, 900], // Replace with real data
-    nonEssentials: [0, 119, 0, 0, 0, 0, 0], // Replace with real data
-    miscellaneous: [800, 1000, 800, 780, 880, 0, 800], // Replace with real data
-  };
+  const barChartDataGenerator = useMemo(() => {
+    const colorsUsed = [];
+    const dataset = {};
+    userExpenses?.forEach((expense) => {
+      if (!dataset[expense.category]) {
+        let generatedColor;
+        do {
+          generatedColor = generatePunchyColorHex();
+        } while (colorsUsed.includes(generatedColor));
+        colorsUsed.push(generatedColor);
+
+        dataset[expense.category] = {
+          label: expense.category,
+          data: [0, 0, 0, 0, 0, 0, 0],
+          backgroundColor: generatedColor,
+        };
+      }
+      // Push the expense amount to the data array
+      const today = new Date();
+      const expenseDate = new Date(expense.date);
+      const datasetDateLen = dataset[expense.category].data.length-1
+      const days = today.getDate() - expenseDate.getDate();
+      if (dataset[expense.category].data[datasetDateLen - days] !== 0) {
+        dataset[expense.category].data[datasetDateLen - days] += expense.amount;
+      }
+      dataset[expense.category].data.splice(datasetDateLen - days,1, expense.amount);
+      // if(expenseDate)
+    });
+    const datasetArray = Object.values(dataset);
+    console.log("dataset========", datasetArray);
+    return datasetArray.reverse();
+  }, [userExpenses]);
 
   return (
-    <div className="container mx-auto p-4">
-      <header className="mb-4">
-        <h1 className="text-3xl font-bold">BUDGETT</h1>
-      </header>
-      <main className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <section className="md:col-span-3">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            <div className="pie-chart bg-white p-4 shadow rounded">
-              <h2 className="text-xl font-bold mb-4">This month</h2>
-              <PieChartComponent data={pieChartData} />
-            </div>
-            <div className="bar-chart bg-white p-4 shadow rounded">
-              <h2 className="text-xl font-bold mb-4">Last week</h2>
-              <BarChartComponent data={barChartData} />
-            </div>
+    <>
+      <div className="container h-[100%] w-[100%] mx-auto p-4 box-border">
+        <header className="mb-4 h-[4%] flex justify-around items-center">
+          <h1 className="text-2xl font-bold">BUDGETT</h1>
+          <div>
+            <SignedOut>
+              <SignInButton />
+            </SignedOut>
+            <SignedIn>
+              <UserButton />
+            </SignedIn>
           </div>
-        </section>
-        <section className="md:col-span-1 bg-white p-4 shadow rounded">
-          <h2 className="text-xl font-bold mb-4">Transactions</h2>
-          <TransactionsList transactions={filteredExpenses} />
-        </section>
-        <section className="md:col-span-1 bg-white p-4 shadow rounded">
-          <FilterPanel filters={filters} setFilters={setFilters} />
-        </section>
-      </main>
-    </div>
+        </header>
+        <main className="w-[100%] m-auto h-[96%] flex flex-row gap-4">
+          <section className="w-full flex flex-row gap-4">
+            <div className="w-[70%] h-full flex flex-col gap-4 overflow-y-scroll">
+              <div className="h-auto shadow-lg border pie-chart bg-white p-4 rounded-3xl">
+                <h2 className=" text-xl font-bold mb-4">This month</h2>
+                <div className="px-8">
+                  {!userData ? (
+                    <Spinner />
+                  ) : (
+                    <PieChartComponent
+                      className="w-[50px]"
+                      data={pieChartData}
+                    />
+                  )}
+                </div>
+              </div>
+              <div className="bar-chart bg-white p-4 border shadow-lg rounded-3xl mb-8">
+                <h2 className="text-xl font-bold mb-4">Last week</h2>
+                <div className="w-full px-8">
+                  {!userData ? (
+                    <Spinner />
+                  ) : (
+                    <BarChartComponent
+                      className="w-full"
+                      dataGenerator={barChartDataGenerator}
+                    />
+                  )}
+                </div>
+              </div>
+            </div>
+            <div className="w-[30%] bg-white p-8 shadow-lg border rounded-3xl mb-8">
+              <TransactionsList
+                transactions={filteredExpenses}
+                userData={userData}
+                userExpenses={userExpenses}
+              />
+            </div>
+          </section>
+        </main>
+      </div>
+      <button
+        className="fixed bottom-6 right-[34rem] !p-0 !m-0 h-12 w-12 bg-blue-600 rounded-full"
+        onClick={() => setShowAddExpenseModal(true)}
+      >
+        <p className="relative top-1/2 left-1/2 -translate-x-1/2 -translate-y-[70%] text-4xl text-white antialiased">
+          +
+        </p>
+      </button>
+      {showAddExpenseModal && (
+        <ExpenseModal
+          userData={userData}
+          setShowAddExpenseModal={setShowAddExpenseModal}
+        />
+      )}
+    </>
   );
 };
 
